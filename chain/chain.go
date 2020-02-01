@@ -1,25 +1,43 @@
 package chain
 
 import (
-	"github.com/boltdb/bolt"
-)
-
-// Chain represent a blockchain struct
-type Chain struct {
-	LastBlockHash []byte
-	Database      bolt.DB
-}
-
-const (
-	genesisPath = "tmp/Genesis.db"
+	"fmt"
+	"os"
 )
 
 // InitChain initialize the blockchain
 // create the database and the first transaction ── Genesis
 // store the last hash key/value to the Genesis db
 // One block ──> One Database = one file ; so we can download one DB file instead of
-// downloading all the database from the beginning
-func InitChain() *Chain {
+// downloading all the database from the beginning and file by file
+func InitChain() {
+	if !DBExists() {
+		fmt.Println("[INFO] : no chain yet, creating genesis block")
+		CreateGenesisBlock()
+	}
+	fmt.Println("[INFO] : it means that there is already a chain database")
+}
 
-	return nil
+// PrintChain : print the chain
+func PrintChain() {
+
+}
+
+// ValidChain return true if chain is valid
+// if all block is connected
+func ValidChain() bool {
+	// var actualBlock Block
+	var lh []byte
+
+	GetLastBlockHash(&lh)
+	return true
+}
+
+// DBExists function to check if database file exist
+func DBExists() bool {
+	if _, err := os.Stat("./DB/LastBlockHash.bc"); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }

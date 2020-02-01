@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
-	"github.com/Boryoku-tekina-soro/makiko/utils"
 	"github.com/boltdb/bolt"
+	"github.com/boryoku-tekina/makiko/utils"
 )
 
 const (
@@ -20,7 +21,7 @@ type Block struct {
 	Hash      []byte
 	Data      []byte
 	PrevHash  []byte
-	Timestamp time.Time
+	Timestamp []byte
 	Nonce     int
 }
 
@@ -35,20 +36,48 @@ func OpenDatabase(s string) *bolt.DB {
 	return db
 }
 
-// MineBlock : create a new block and mine it
-func MineBlock(data, prevHash []byte) *Block {
-	// block := &Block{[]byte{}, txs, prevHash, 0}
-	var block *Block
-	block.Data = data
-	block.PrevHash = prevHash
+// CreateGenesisBlock : create the genesis Block and mine it
+func CreateGenesisBlock() {
+	fmt.Println("CREATING GENESIS BLOCK")
+	var b Block
+	b.Timestamp = []byte(time.Now().String())
+	b.PrevHash = bytes.Repeat([]byte{0}, 32)
 
-	pow := NewWork(block)
+	pow := NewWork(&b)
 	nonce, hash := pow.Work()
 
-	block.Hash = hash[:]
-	block.Nonce = nonce
+	b.Hash = hash[:]
+	b.Nonce = nonce
 
-	return block
+	if !b.ValidateBlock() {
+		log.Panic("this block is not valid")
+	}
+	b.RegisterToDB()
+	b.SetAsLastBlock()
+
+	fmt.Println("Genesis Block Generated")
+}
+
+// Mine : create a new block and mine it
+func (b *Block) Mine() {
+	// block := &Block{[]byte{}, txs, prevHash, 0}
+
+	b.Timestamp = []byte(time.Now().String())
+	GetLastBlockHash(&b.PrevHash)
+	// GetLastBlockHash()
+
+	pow := NewWork(b)
+	nonce, hash := pow.Work()
+
+	b.Hash = hash[:]
+	b.Nonce = nonce
+
+	if !b.ValidateBlock() {
+		log.Panic("[ERROR] : this block is not valid")
+	}
+	b.RegisterToDB()
+	b.SetAsLastBlock()
+	fmt.Println("[INFO] : Block Mined Successfully")
 }
 
 // ValidateBlock : validate a passed block
@@ -70,7 +99,7 @@ func (b *Block) RegisterToDB() {
 		bucket.Put([]byte("Hash"), b.Hash)
 		bucket.Put([]byte("Data"), b.Data)
 		bucket.Put([]byte("PrevHash"), b.PrevHash)
-		bucket.Put([]byte("TimeStamp"), []byte(b.Timestamp.String()))
+		bucket.Put([]byte("TimeStamp"), b.Timestamp)
 		bucket.Put([]byte("nonce"), []byte(strconv.Itoa(b.Nonce)))
 		return err
 	})
@@ -92,7 +121,7 @@ func (b *Block) SetAsLastBlock() {
 	})
 	utils.HandleErr(err)
 
-	fmt.Println("block successfully set as last block")
+	fmt.Println("[INFO] : block successfully set as last block")
 }
 
 // GetLastBlockHash get the hash of the last block in the chain
@@ -122,4 +151,75 @@ func GetLastBlockHash(d *[]byte) {
 	})
 	utils.HandleErr(err)
 	fmt.Println("got last block hash")
+}
+
+// GetBlockByHash : return a block according to the given hash
+func GetBlockByHash(bhash []byte) *Block {
+	db := OpenDatabase(fmt.Sprintf("%x", bhash))
+	defer db.Close()
+
+	var b Block
+
+	// var pb *Block
+	var byterep *[]byte
+
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bhash)
+		b.Hash = bucket.Get([]byte("Hash"))
+		b.Data = bucket.Get([]byte("Data"))
+		b.PrevHash = bucket.Get([]byte("PrevHash"))
+		var err error
+		b.Timestamp = bucket.Get([]byte("TimeStamp"))
+		b.Nonce, err = strconv.Atoi(string(bucket.Get([]byte("nonce"))))
+
+		bBytes := b.Serialize()
+
+		byterep = &bBytes
+
+		return err
+	})
+
+	utils.HandleErr(err)
+
+	return Deserialize(*byterep)
+}
+
+// PrintBlockInfo : print all information in the block
+func (b *Block) PrintBlockInfo() {
+	fmt.Println("────────────────────────────────────────")
+	fmt.Printf("Block  %x information : \n", b.Hash)
+
+	fmt.Printf("────Data : \t %x \n", b.Data)
+	fmt.Printf("────Hash : \t %x \n", b.Hash)
+	fmt.Printf("────Timestamp : \t %s \n", string(b.Timestamp))
+	fmt.Printf("────Nonce : \t %d \n", b.Nonce)
+	fmt.Println("────────────────────────────────────────")
+
+}
+
+// UTILS FUNCTIONS
+
+// Serialize [return a byte representation of a BLOCK]
+func (b *Block) Serialize() []byte {
+	var res bytes.Buffer
+	encoder := gob.NewEncoder(&res)
+
+	err := encoder.Encode(b)
+
+	utils.HandleErr(err)
+
+	return res.Bytes()
+}
+
+// Deserialize a block
+func Deserialize(data []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+
+	err := decoder.Decode(&block)
+
+	utils.HandleErr(err)
+
+	return &block
 }

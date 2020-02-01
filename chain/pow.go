@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/Boryoku-tekina-soro/makiko/utils"
+	"github.com/boryoku-tekina/makiko/utils"
 )
 
 // take the data from the block
@@ -20,7 +20,7 @@ import (
 // THe first few bytes of the hash must contain 0
 
 // Difficulty of consensus
-const Difficulty = 2
+var difficulty = 2
 
 // ProofOfWork struct
 type ProofOfWork struct {
@@ -30,19 +30,19 @@ type ProofOfWork struct {
 // NewWork return a new pow
 func NewWork(b *Block) *ProofOfWork {
 	pow := &ProofOfWork{b}
-
 	return pow
 }
 
 // initData Function
 func (pow *ProofOfWork) initData(nonce int) []byte {
+
 	data := bytes.Join(
 		[][]byte{
 			pow.Block.PrevHash,
 			pow.Block.Data,
-			[]byte(pow.Block.Timestamp.String()),
+			[]byte(pow.Block.Timestamp),
 			utils.ToHex(int64(nonce)),
-			utils.ToHex(int64(Difficulty)),
+			utils.ToHex(int64(difficulty)),
 		},
 		[]byte{},
 	)
@@ -53,13 +53,14 @@ func (pow *ProofOfWork) initData(nonce int) []byte {
 func (pow *ProofOfWork) Work() (int, []byte) {
 	var hash [32]byte
 	nonce := 0
+
 	for {
 		data := pow.initData(nonce)
 		hash = sha256.Sum256(data)
 
 		fmt.Printf("\r%x", hash)
 
-		if bytes.HasPrefix(hash[:], bytes.Repeat([]byte{0}, Difficulty)) {
+		if bytes.HasPrefix(hash[:], bytes.Repeat([]byte{0}, difficulty)) {
 			break
 		}
 		nonce++
@@ -74,7 +75,7 @@ func (pow *ProofOfWork) Validate() bool {
 
 	hash := sha256.Sum256(data)
 
-	if !bytes.HasPrefix(hash[:], bytes.Repeat([]byte{0}, Difficulty)) {
+	if !bytes.HasPrefix(hash[:], bytes.Repeat([]byte{0}, difficulty)) {
 		fmt.Println("hash does not satisfy difficulty requirements")
 		return false
 	}
