@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 )
@@ -20,7 +21,20 @@ func InitChain() {
 
 // PrintChain : print the chain
 func PrintChain() {
-
+	// iterating through all block
+	// beginning from the last
+	var lh []byte
+	GetLastBlockHash(&lh)
+	actualBlock := GetBlockByHash(lh)
+	for {
+		// if we are on the genesis block
+		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+			actualBlock.PrintBlockInfo()
+			break
+		}
+		actualBlock.PrintBlockInfo()
+		actualBlock = GetBlockByHash(actualBlock.PrevHash)
+	}
 }
 
 // ValidChain return true if chain is valid

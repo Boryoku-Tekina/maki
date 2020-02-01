@@ -191,6 +191,7 @@ func (b *Block) PrintBlockInfo() {
 
 	fmt.Printf("────Data : \t %x \n", b.Data)
 	fmt.Printf("────Hash : \t %x \n", b.Hash)
+	fmt.Printf("────Previous Hash : \t %x \n", b.PrevHash)
 	fmt.Printf("────Timestamp : \t %s \n", string(b.Timestamp))
 	fmt.Printf("────Nonce : \t %d \n", b.Nonce)
 	fmt.Println("────────────────────────────────────────")
