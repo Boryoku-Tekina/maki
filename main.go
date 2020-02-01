@@ -7,6 +7,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/boryoku-tekina/makiko/chain"
 )
 
@@ -36,5 +38,8 @@ func main() {
 	*/
 
 	chain.PrintChain()
+	if chain.ValidChain() {
+		fmt.Println("[INFO] : Chain is Valid")
+	}
 
 }

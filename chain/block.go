@@ -150,7 +150,7 @@ func GetLastBlockHash(d *[]byte) {
 		return nil
 	})
 	utils.HandleErr(err)
-	fmt.Println("got last block hash")
+	fmt.Println("[INFO] : got last block hash")
 }
 
 // GetBlockByHash : return a block according to the given hash

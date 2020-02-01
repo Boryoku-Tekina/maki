@@ -83,6 +83,14 @@ func (pow *ProofOfWork) Validate() bool {
 		fmt.Println("hash is not correct : maybe this nonce does not provide a valid hash")
 		return false
 	}
-	fmt.Println("good news : work valid")
+	// verifying the genesis block
+	if bytes.Equal(pow.Block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+		fmt.Println("GENESIS BLOCK VALID")
+		return true
+	}
+	if !bytes.Equal(pow.Block.PrevHash, GetBlockByHash(pow.Block.PrevHash).Hash) {
+		fmt.Println("previous hash not matching")
+	}
+	fmt.Printf("[INFO] : block %x validated\n", pow.Block.Hash)
 	return true
 }

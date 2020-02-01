@@ -42,8 +42,24 @@ func PrintChain() {
 func ValidChain() bool {
 	// var actualBlock Block
 	var lh []byte
-
 	GetLastBlockHash(&lh)
+	actualBlock := GetBlockByHash(lh)
+
+	for {
+		// if we are on the genesis block
+		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+			validation := actualBlock.ValidateBlock()
+			if validation == false {
+				return false
+			}
+			break
+		}
+		validation := actualBlock.ValidateBlock()
+		if validation == false {
+			return false
+		}
+		actualBlock = GetBlockByHash(actualBlock.PrevHash)
+	}
 	return true
 }
 
