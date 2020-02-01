@@ -7,39 +7,12 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/boryoku-tekina/makiko/chain"
+	"github.com/boryoku-tekina/makiko/tests"
 )
 
 func main() {
 
-	/*
-		TEST 1 ·····
-		// step 1
-		chain.InitChain()
-		var block1 chain.Block
-		block1.Data = []byte("Block 1 Data")
-		block1.Mine()
-		var block2 chain.Block
-		block2.Data = []byte("Block 2 Data")
-		block2.Mine()
-
-		// step 2
-		var lastHash []byte
-		chain.GetLastBlockHash(&lastHash)
-
-		block := chain.GetBlockByHash(lastHash)
-
-		block.PrintBlockInfo()
-
-		END TEST 1
-
-	*/
-
-	chain.PrintChain()
-	if chain.ValidChain() {
-		fmt.Println("[INFO] : Chain is Valid")
-	}
+	tests.GetFunds("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7")
+	tests.GetFunds("1C2xh3EhizWUXMagg83UpAcU4fk7UnUdYc")
 
 }
