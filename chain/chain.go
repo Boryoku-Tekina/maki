@@ -87,78 +87,6 @@ func DBExists() bool {
 	return true
 }
 
-// FindUnspentTransactions : find unspent transaction
-func FindUnspentTransactions(pubKeyHash []byte) []Transaction {
-	var unspentTxs []Transaction
-
-	spentTXOs := make(map[string][]int)
-
-	var lh []byte
-	GetLastBlockHash(&lh)
-	block := GetBlockByHash(lh)
-
-	for {
-		// if we are on the genesis block
-		if bytes.Equal(block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
-
-		for _, tx := range block.Transactions {
-			txID := hex.EncodeToString(tx.ID)
-
-		Outputs:
-			for outIdx, out := range tx.Outputs {
-				if spentTXOs[txID] != nil {
-					for _, spentOut := range spentTXOs[txID] {
-						if spentOut == outIdx {
-							continue Outputs
-						}
-					}
-				}
-				if out.IsLockedWithKey(pubKeyHash) {
-					unspentTxs = append(unspentTxs, *tx)
-				}
-			}
-			if tx.IsCoinBase() == false {
-				for _, in := range tx.Inputs {
-					if in.UsesKey(pubKeyHash) {
-						inTxID := hex.EncodeToString(in.ID)
-						spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
-					}
-				}
-			}
-		}
-
-		block = GetBlockByHash(block.PrevHash)
-
-	}
-	return unspentTxs
-}
-
-// FindSpendableOutputs : find spendable outputs
-func FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
-	unspentOuts := make(map[string][]int)
-	unspentTxs := FindUnspentTransactions(pubKeyHash)
-	accumulated := 0
-
-Work:
-	for _, tx := range unspentTxs {
-		txID := hex.EncodeToString(tx.ID)
-
-		for outIdx, out := range tx.Outputs {
-			if out.IsLockedWithKey(pubKeyHash) && accumulated < amount {
-				accumulated += out.Value
-				unspentOuts[txID] = append(unspentOuts[txID], outIdx)
-				if accumulated >= amount {
-					break Work
-				}
-			}
-		}
-	}
-
-	return accumulated, unspentOuts
-}
-
 // SignTransaction function to sign a tx
 func SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
 	prevTxs := make(map[string]Transaction)
@@ -262,50 +190,8 @@ func FindUTXO() map[string]TxOutputs {
 						}
 					}
 				}
-				outs := UTXO[txID]
-				outs.Outputs = append(outs.Outputs, out)
-				UTXO[txID] = outs
-			}
-			if tx.IsCoinBase() == false {
-				for _, in := range tx.Inputs {
-					inTxID := hex.EncodeToString(in.ID)
-					spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
-				}
-			}
-		}
-		block = GetBlockByHash(block.PrevHash)
-
-	}
-	return UTXO
-}
-
-// FindAdressUTXO find unspent transaction outputs for specific address
-func FindAdressUTXO(address string) map[string]TxOutputs {
-	UTXO := make(map[string]TxOutputs)
-	spentTXOs := make(map[string][]int)
-
-	var lh []byte
-	GetLastBlockHash(&lh)
-	block := GetBlockByHash(lh)
-
-	for {
-		// break if we are on the genesis block
-		if bytes.Equal(block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
-
-		for _, tx := range block.Transactions {
-			txID := hex.EncodeToString(tx.ID)
-
-		Outputs:
-			for outIdx, out := range tx.Outputs {
-				if spentTXOs[txID] != nil {
-					for _, spentOut := range spentTXOs[txID] {
-						if spentOut == outIdx {
-							continue Outputs
-						}
-					}
-				}
+				// take the outputs
+				// and put it in the UTXO[] map
 				outs := UTXO[txID]
 				outs.Outputs = append(outs.Outputs, out)
 				UTXO[txID] = outs

@@ -65,11 +65,14 @@ func (out *TxOutput) IsLockedWithKey(PubKeyHash []byte) bool {
 ////////////////////////////////////////////////////////////
 
 // TxOutputs : array of TxOutput
+// we can use this to identify our transaction outputs
+// and then sort it by unspent outpus
 type TxOutputs struct {
 	Outputs []TxOutput
 }
 
 // Serialize TxOutputs
+// take the actual struct and encode it in bytes
 func (outs TxOutputs) Serialize() []byte {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
@@ -79,6 +82,8 @@ func (outs TxOutputs) Serialize() []byte {
 }
 
 // DeserializeOutputs : Deserialize Outputs
+// take and encoded to byte struct
+// and decode it to original Txouputs struct
 func DeserializeOutputs(data []byte) TxOutputs {
 	var outputs TxOutputs
 	decode := gob.NewDecoder(bytes.NewReader(data))
