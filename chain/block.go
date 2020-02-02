@@ -2,13 +2,14 @@ package chain
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
-	"strconv"
+	"log"
 	"time"
 
-	"github.com/Boryoku-tekina-soro/makiko/utils"
 	"github.com/boltdb/bolt"
+	"github.com/boryoku-tekina/makiko/utils"
 )
 
 const (
@@ -17,11 +18,11 @@ const (
 
 // Block represent one block structure
 type Block struct {
-	Hash      []byte
-	Data      []byte
-	PrevHash  []byte
-	Timestamp time.Time
-	Nonce     int
+	Hash         []byte
+	Transactions []*Transaction
+	PrevHash     []byte
+	Timestamp    []byte
+	Nonce        int
 }
 
 // OpenDatabase : opening a database
@@ -35,20 +36,49 @@ func OpenDatabase(s string) *bolt.DB {
 	return db
 }
 
-// MineBlock : create a new block and mine it
-func MineBlock(data, prevHash []byte) *Block {
-	// block := &Block{[]byte{}, txs, prevHash, 0}
-	var block *Block
-	block.Data = data
-	block.PrevHash = prevHash
+// CreateGenesisBlock : create the genesis Block and mine it
+func CreateGenesisBlock() {
+	fmt.Println("[INFO] : Creating Genesis block")
+	var b Block
+	b.Transactions = nil
+	b.Timestamp = []byte(time.Now().String())
+	b.PrevHash = bytes.Repeat([]byte{0}, 32)
 
-	pow := NewWork(block)
+	pow := NewWork(&b)
 	nonce, hash := pow.Work()
 
-	block.Hash = hash[:]
-	block.Nonce = nonce
+	b.Hash = hash[:]
+	b.Nonce = nonce
 
-	return block
+	if !b.ValidateBlock() {
+		log.Panic("this block is not valid")
+	}
+	b.RegisterToDB()
+	b.SetAsLastBlock()
+
+	fmt.Println("Genesis Block Generated")
+}
+
+// Mine : create a new block and mine it
+func (b *Block) Mine() {
+	// block := &Block{[]byte{}, txs, prevHash, 0}
+
+	b.Timestamp = []byte(time.Now().String())
+	GetLastBlockHash(&b.PrevHash)
+	// GetLastBlockHash()
+
+	pow := NewWork(b)
+	nonce, hash := pow.Work()
+
+	b.Hash = hash[:]
+	b.Nonce = nonce
+
+	if !b.ValidateBlock() {
+		log.Panic("[ERROR] : this block is not valid")
+	}
+	b.RegisterToDB()
+	b.SetAsLastBlock()
+	fmt.Println("[INFO] : Block Mined Successfully")
 }
 
 // ValidateBlock : validate a passed block
@@ -67,11 +97,7 @@ func (b *Block) RegisterToDB() {
 		bucket, err := tx.CreateBucketIfNotExists(b.Hash)
 		utils.HandleErr(err)
 		utils.HandleErr(err)
-		bucket.Put([]byte("Hash"), b.Hash)
-		bucket.Put([]byte("Data"), b.Data)
-		bucket.Put([]byte("PrevHash"), b.PrevHash)
-		bucket.Put([]byte("TimeStamp"), []byte(b.Timestamp.String()))
-		bucket.Put([]byte("nonce"), []byte(strconv.Itoa(b.Nonce)))
+		bucket.Put([]byte("block"), b.Serialize())
 		return err
 	})
 	utils.HandleErr(err)
@@ -92,13 +118,13 @@ func (b *Block) SetAsLastBlock() {
 	})
 	utils.HandleErr(err)
 
-	fmt.Println("block successfully set as last block")
+	fmt.Println("[INFO] : block successfully set as last block")
 }
 
 // GetLastBlockHash get the hash of the last block in the chain
 // putting it in d
 func GetLastBlockHash(d *[]byte) {
-	var result []byte
+	// var result []byte
 
 	var b Block
 
@@ -107,12 +133,12 @@ func GetLastBlockHash(d *[]byte) {
 
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("LastBlockHash"))
-		result = bucket.Get([]byte("LastBlockHash"))
-		b.Hash = result
+		resultat := bucket.Get([]byte("LastBlockHash"))
+		b.Hash = resultat
 
 		var buffer bytes.Buffer
 		encoder := gob.NewEncoder(&buffer)
-		errs := encoder.Encode(result)
+		errs := encoder.Encode(resultat)
 		utils.HandleErr(errs)
 		res := buffer.Bytes()
 		// fmt.Printf("Inspecting res : %x\n", res[0:4])
@@ -121,5 +147,92 @@ func GetLastBlockHash(d *[]byte) {
 		return nil
 	})
 	utils.HandleErr(err)
-	fmt.Println("got last block hash")
+	fmt.Println("[INFO] : got last block hash")
+}
+
+// GetBlockByHash : return a block according to the given hash
+func GetBlockByHash(bhash []byte) *Block {
+	db := OpenDatabase(fmt.Sprintf("%x", bhash))
+	defer db.Close()
+	var b *Block
+
+	// var pb *Block
+	var byterep *[]byte
+
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(bhash)
+		b = Deserialize(bucket.Get([]byte("block")))
+
+		bBytes := b.Serialize()
+
+		byterep = &bBytes
+
+		return nil
+	})
+
+	utils.HandleErr(err)
+
+	return Deserialize(*byterep)
+}
+
+// PrintBlockInfo : print all information in the block
+func (b *Block) PrintBlockInfo() {
+	fmt.Println("────────────────────────────────────────")
+	fmt.Printf("Block  %x information : \n", b.Hash)
+
+	fmt.Printf("────Transactions :\n\t")
+	for _, tx := range b.Transactions {
+		fmt.Printf("----------------------------------------------------------\n")
+		fmt.Printf(tx.String())
+		fmt.Printf("\n----------------------------------------------------------")
+	}
+	fmt.Println()
+	fmt.Printf("────Hash : \t %x \n", b.Hash)
+	fmt.Printf("────Previous Hash : \t %x \n", b.PrevHash)
+	fmt.Printf("────Timestamp : \t %s \n", string(b.Timestamp))
+	fmt.Printf("────Nonce : \t %d \n", b.Nonce)
+	fmt.Println("────────────────────────────────────────")
+
+}
+
+// UTILS FUNCTIONS
+
+// Serialize [return a byte representation of a BLOCK]
+func (b *Block) Serialize() []byte {
+	var res bytes.Buffer
+	encoder := gob.NewEncoder(&res)
+
+	err := encoder.Encode(b)
+
+	utils.HandleErr(err)
+
+	return res.Bytes()
+}
+
+// Deserialize a block
+func Deserialize(data []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+
+	err := decoder.Decode(&block)
+	if err != nil {
+		log.Panic("error while decoding")
+	}
+	utils.HandleErr(err)
+
+	return &block
+}
+
+// HashTransactions function
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+	return txHash[:]
 }

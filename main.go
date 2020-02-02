@@ -7,30 +7,12 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/Boryoku-tekina-soro/makiko/chain"
+	"github.com/boryoku-tekina/makiko/tests"
 )
 
 func main() {
-	var block1 chain.Block
 
-	block1.Data = []byte("First blodddck Data")
-
-	var work chain.ProofOfWork
-
-	work.Block = &block1
-
-	// block1.Nonce, block1.Hash = work.Work()
-	// work.Validate()
-
-	// block1.RegisterToDB()
-	// block1.SetAsLastBlock()
-
-	var lastHash []byte
-
-	chain.GetLastBlockHash(&lastHash)
-
-	fmt.Printf("last hash : %x\n", lastHash)
+	tests.GetFunds("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7")
+	tests.GetFunds("1C2xh3EhizWUXMagg83UpAcU4fk7UnUdYc")
 
 }
