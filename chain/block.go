@@ -64,7 +64,7 @@ func (b *Block) Mine() {
 	// block := &Block{[]byte{}, txs, prevHash, 0}
 
 	b.Timestamp = []byte(time.Now().String())
-	GetLastBlockHash(&b.PrevHash)
+	b.PrevHash = GetLastBlockHash()
 	// GetLastBlockHash()
 
 	pow := NewWork(b)
@@ -96,7 +96,6 @@ func (b *Block) RegisterToDB() {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists(b.Hash)
 		utils.HandleErr(err)
-		utils.HandleErr(err)
 		bucket.Put([]byte("block"), b.Serialize())
 		return err
 	})
@@ -122,8 +121,15 @@ func (b *Block) SetAsLastBlock() {
 }
 
 // GetLastBlockHash get the hash of the last block in the chain
+func GetLastBlockHash() []byte {
+	var lh []byte
+	getLastBlockHash(&lh)
+	return lh
+}
+
+// GetLastBlockHash get the hash of the last block in the chain
 // putting it in d
-func GetLastBlockHash(d *[]byte) {
+func getLastBlockHash(d *[]byte) {
 	// var result []byte
 
 	var b Block

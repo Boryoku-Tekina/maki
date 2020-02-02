@@ -2,13 +2,9 @@ package chain
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"log"
 
 	"github.com/boryoku-tekina/makiko/utils"
-
-	"github.com/boltdb/bolt"
 )
 
 var (
@@ -16,248 +12,74 @@ var (
 	prefixLenght = len(utxoPrefix)
 )
 
-// UTXOSet struct of
-type UTXOSet struct {
-}
+// GetUTXOOf function
+// return all UTXO for the address
+func GetUTXOOf(address string) TxOutputs {
+	UTXOs := TxOutputs{}
+	UTXOs.Outputs = nil
 
-// DeleteByPrefix : delete a keys/value by the given prefix
-func DeleteByPrefix(prefix []byte) {
+	// wallets, err := wallet.CreateWallets()
+	// utils.HandleErr(err)
+	// w := wallets.GetWallets(address)
 
-	var lh []byte
-	GetLastBlockHash(&lh)
+	PubKeyHash := utils.Base58Decode([]byte(address))
+	PubKeyHash = PubKeyHash[1 : len(PubKeyHash)-4]
+
+	lh := GetLastBlockHash()
 	actualBlock := GetBlockByHash(lh)
-
+Parcour:
 	for {
-		// break if we are on the genesis block
+		// if we are on the genesis block
 		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
 			break
 		}
-
-		db := OpenDatabase(fmt.Sprintf("%x", actualBlock.Hash))
-		defer db.Close()
-
-		if err := db.Update(func(tx *bolt.Tx) error {
-			bucket := tx.Bucket([]byte("block"))
-			if err := bucket.ForEach(func(k, v []byte) error {
-				if bytes.HasPrefix(k, prefix) {
-					if err := bucket.Delete(k); err != nil {
-						return err
-					}
-				}
-				return nil
-			}); err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
-			log.Panic("Error updating Db : ", err.Error())
+		if actualBlock.Transactions == nil {
+			fmt.Println("there is no tx in this block")
 		}
 
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
-	}
-
-}
-
-// Reindex function
-func Reindex() {
-	DeleteByPrefix(utxoPrefix)
-	UTXO := FindUTXO()
-
-	var lh []byte
-	GetLastBlockHash(&lh)
-	actualBlock := GetBlockByHash(lh)
-	for {
-		// break if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
-
-		db := OpenDatabase(fmt.Sprintf("%x", actualBlock.Hash))
-		defer db.Close()
-		err := db.Update(func(tx *bolt.Tx) error {
-			for txID, outs := range UTXO {
-				key, err := hex.DecodeString(txID)
-				if err != nil {
-					return err
-				}
-				key = append(utxoPrefix, key...)
-				bucket := tx.Bucket([]byte("block"))
-				err = bucket.Put(key, outs.Serialize())
-				utils.HandleErr(err)
-			}
-			return nil
-		})
-		utils.HandleErr(err)
-
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
-
-	}
-
-}
-
-// Update function
-// update block
-func Update(block *Block) {
-	db := OpenDatabase(fmt.Sprintf("%x", block.Hash))
-	defer db.Close()
-
-	err := db.Update(func(txn *bolt.Tx) error {
-		for _, tx := range block.Transactions {
-			if !tx.IsCoinBase() {
-				for _, in := range tx.Inputs {
-					updateOuts := TxOutputs{}
-					inID := append(utxoPrefix, in.ID...)
-					item := txn.Bucket([]byte("block"))
-					v := item.Get(inID)
-
-					outs := DeserializeOutputs(v)
-
-					for outIDx, out := range outs.Outputs {
-						if outIDx != in.Out {
-							updateOuts.Outputs = append(updateOuts.Outputs, out)
-						}
+		for _, actualTx := range actualBlock.Transactions {
+			if actualTx.IsCoinBase() {
+				for _, out := range actualTx.Outputs {
+					if out.IsLockedWithKey(PubKeyHash) {
+						fmt.Println("get coin base for ", address, " appending it...")
+						UTXOs.Outputs = append(UTXOs.Outputs, out)
+						fmt.Println("actual UTXOs.OUtputs : ", UTXOs.Outputs)
 					}
-					if len(updateOuts.Outputs) == 0 {
-						if err := item.Delete(inID); err != nil {
-							log.Panic(err.Error())
+				}
+			} else {
+				for _, out := range actualTx.Outputs {
+					if out.IsLockedWithKey(PubKeyHash) {
+						isChange := false
+						// for _, in := range actualTx.Inputs {
+						// 	if bytes.Equal(in.PubKey, w.PublicKey) {
+						// 		isChange = true
+						// 	}
+						// }
+						// if the last outputs is locked with key pubkeyhash
+						// it is a change
+						if actualTx.Outputs[(len(actualTx.Outputs) - 1)].IsLockedWithKey(PubKeyHash) {
+							isChange = true
 						}
-					} else {
-						if err := item.Put(inID, updateOuts.Serialize()); err != nil {
-							log.Panic(err.Error())
+						if isChange == true {
+							fmt.Println("get a CHANGE for ", address, "stoping...")
+							UTXOs.Outputs = append(UTXOs.Outputs, out)
+							fmt.Println("actual UTXOs.OUtputs : ", UTXOs.Outputs)
+							break Parcour
+						} else {
+							fmt.Println("get a TRANSACTION for ", address, "appending and continue...")
+							UTXOs.Outputs = append(UTXOs.Outputs, out)
+							fmt.Println("actual UTXOs.OUtputs : ", UTXOs.Outputs)
 						}
 					}
 				}
 			}
-			newOutputs := TxOutputs{}
-			for _, out := range tx.Outputs {
-				newOutputs.Outputs = append(newOutputs.Outputs, out)
-			}
-			txID := append(utxoPrefix, tx.ID...)
-			item := txn.Bucket([]byte("block"))
-			if err := item.Put(txID, newOutputs.Serialize()); err != nil {
-				log.Panic(err)
-			}
 
 		}
-		return nil
-	})
-
-	utils.HandleErr(err)
-}
-
-// CountTransactions : count unspent transactions inside of a block
-func CountTransactions() int {
-	var lh []byte
-	GetLastBlockHash(&lh)
-	actualBlock := GetBlockByHash(lh)
-	counter := 0
-	for {
-		// break if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
-
-		db := OpenDatabase(fmt.Sprintf("%x", actualBlock.Hash))
-		defer db.Close()
-
-		err := db.View(func(txn *bolt.Tx) error {
-			it := txn.Bucket([]byte("block"))
-			it.ForEach(func(k, v []byte) error {
-				if bytes.HasPrefix(k, utxoPrefix) {
-					counter++
-				}
-				return nil
-			})
-			return nil
-		})
-		utils.HandleErr(err)
 
 		actualBlock = GetBlockByHash(actualBlock.PrevHash)
 	}
-
-	return counter
-}
-
-// FindUnspentTransactions : find unspent transactions
-// return array of transactions that has not been spent yet
-func FindUnspentTransactions(pubKeyHash []byte) []TxOutput {
-	var UTXOs []TxOutput
-	var lh []byte
-	GetLastBlockHash(&lh)
-	actualBlock := GetBlockByHash(lh)
-	for {
-		// break if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
-		db := OpenDatabase(fmt.Sprintf("%x", actualBlock.Hash))
-		defer db.Close()
-
-		err := db.View(func(txn *bolt.Tx) error {
-			it := txn.Bucket([]byte("block"))
-			it.ForEach(func(k, v []byte) error {
-				if bytes.HasPrefix(k, utxoPrefix) {
-					v := it.Get(k)
-					outs := DeserializeOutputs(v)
-
-					for _, out := range outs.Outputs {
-						if out.IsLockedWithKey(pubKeyHash) {
-							UTXOs = append(UTXOs, out)
-						}
-					}
-
-				}
-				return nil
-			})
-			return nil
-		})
-		utils.HandleErr(err)
-
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
-	}
-
 	return UTXOs
 }
 
-// FindSpendableOutputs : find spendable outputs
-func FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
-	unspentOuts := make(map[string][]int)
-	accumulated := 0
-	var lh []byte
-	GetLastBlockHash(&lh)
-	actualBlock := GetBlockByHash(lh)
-	for {
-		// break if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
-
-		db := OpenDatabase(fmt.Sprintf("%x", actualBlock.Hash))
-
-		db.View(func(txn *bolt.Tx) error {
-			it := txn.Bucket([]byte("block"))
-
-			it.ForEach(func(k, v []byte) error {
-				if bytes.HasPrefix(k, utxoPrefix) {
-					v := it.Get(k)
-					k = bytes.TrimPrefix(k, utxoPrefix)
-					txID := hex.EncodeToString(k)
-					outs := DeserializeOutputs(v)
-
-					for outIdx, out := range outs.Outputs {
-						if out.IsLockedWithKey(pubKeyHash) && accumulated < amount {
-							accumulated += out.Value
-							unspentOuts[txID] = append(unspentOuts[txID], outIdx)
-						}
-					}
-				}
-				return nil
-			})
-			return nil
-		})
-
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
-	}
-
-	return accumulated, unspentOuts
-}
+// if address contains in Inputs and OUtputs then reset the UTXO to the actual TxO
+// if address contains only in Outpus then append actual UTXO with the actual TxO

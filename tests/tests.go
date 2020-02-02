@@ -3,8 +3,9 @@ package tests
 import (
 	"fmt"
 
-	"github.com/boryoku-tekina/makiko/chain"
 	"github.com/boryoku-tekina/makiko/utils"
+
+	"github.com/boryoku-tekina/makiko/chain"
 	"github.com/boryoku-tekina/makiko/wallet"
 )
 
@@ -34,21 +35,30 @@ func Transaction() {
 	chain.AddBlock([]*chain.Transaction{tx})
 }
 
-// GetFunds : get fund in address
-func GetFunds(address string) {
+// GetBalanceOf : get fund in address
+func GetBalanceOf(address string) int {
 	balance := 0
 	pubKeyHash := utils.Base58Decode([]byte(address))
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
-	// UTXOs := chain.FindUTXO(pubKeyHash)
+	balance = chain.GetAmountOf(address)
+	fmt.Printf("balance of %s == %d\n", address, balance)
+	return balance
+}
 
-	// for _, out := range UTXOs {
-	// 	balance += out.Value
-	// }
-	UTXOS := chain.FindUnspentTransactions(pubKeyHash)
+// Donate : give coin base transaction to an address
+func Donate(address string, amount int) {
+	T1 := chain.CoinBaseTx(amount, address, "Donation")
+	var Txs []*chain.Transaction
+	Txs = append(Txs, T1)
+	chain.AddBlock(Txs)
+	fmt.Printf("\n\n[INFO] : Donation of %d for %s DONE!\n\n", amount, address)
+}
 
-	for _, tx := range UTXOS {
-		balance += tx.Outputs[len(tx.Outputs)-1].Value
-	}
-	fmt.Println("balance of ", address, " = ", balance)
-	// chain.PrintChain()
+// Send : send amount of coin from an address to other
+func Send(from, to string, amount int) {
+	Tx := chain.NewTransaction(from, to, 70)
+	var txs []*chain.Transaction
+	txs = append(txs, Tx)
+	chain.AddBlock(txs)
+	fmt.Printf("[INFO]: Sending %d coins from %s to %s DONE!\n", amount, from, to)
 }

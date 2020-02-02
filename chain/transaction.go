@@ -6,9 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
-	"encoding/hex"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/boryoku-tekina/makiko/utils"
@@ -27,20 +25,25 @@ type Transaction struct {
 func (tx *Transaction) String() string {
 	var lines []string
 
-	lines = append(lines, fmt.Sprintf("──Transaction %x:", tx.ID))
+	lines = append(lines, fmt.Sprintf("──Transaction id :  %x:", tx.ID))
+	lines = append(lines, fmt.Sprintf("----------------------------------INPUTS--------------------------------------------"))
 
 	for i, input := range tx.Inputs {
 		lines = append(lines, fmt.Sprintf("\t Input:\t %d", i))
-		lines = append(lines, fmt.Sprintf("\t TXID:\t %x", input.ID))
 		lines = append(lines, fmt.Sprintf("\t Out:\t %d", input.Out))
 		lines = append(lines, fmt.Sprintf("\t Signature:\t %x", input.Signature))
 		lines = append(lines, fmt.Sprintf("\t PubKey:\t %x", input.PubKey))
+		lines = append(lines, fmt.Sprintf("----------------------------------"))
+
 	}
+	lines = append(lines, fmt.Sprintf("----------------------------------OUTPUTS--------------------------------------------"))
 
 	for i, output := range tx.Outputs {
 		lines = append(lines, fmt.Sprintf("\t Output:\t %d", i))
 		lines = append(lines, fmt.Sprintf("\t Value:\t %d", output.Value))
 		lines = append(lines, fmt.Sprintf("\t Script:\t %x", output.PubKeyHash))
+
+		lines = append(lines, fmt.Sprintf("----------------------------------"))
 
 	}
 
@@ -49,7 +52,7 @@ func (tx *Transaction) String() string {
 }
 
 // SetID : setting id
-// the tx is id is the hash of the encoded tx
+// the tx id is the hash of the encoded tx
 // (encoded tx = byte representation of tx)
 func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
@@ -109,48 +112,34 @@ func CoinBaseTx(amount int, to, data string) *Transaction {
 	return &tx
 }
 
-// TrimmedCopy return a copy of the transaction
-func (tx *Transaction) TrimmedCopy() Transaction {
-	var inputs []TxInput
-	var outputs []TxOutput
-
-	for _, in := range tx.Inputs {
-		inputs = append(inputs, TxInput{in.ID, in.Out, nil, nil})
-	}
-
-	for _, out := range tx.Outputs {
-		outputs = append(outputs, TxOutput{out.Value, out.PubKeyHash})
-	}
-
-	txCopy := Transaction{tx.ID, inputs, outputs}
-
-	return txCopy
-}
-
 // Sign : Sign a transaction
-func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTxs map[string]Transaction) {
+func (tx *Transaction) Sign(privKey ecdsa.PrivateKey) {
 	if tx.IsCoinBase() {
 		return
 	}
+	tx.ID = tx.Hash()
+	r, s, err := ecdsa.Sign(rand.Reader, &privKey, tx.ID)
+	utils.HandleErr(err)
+	signature := append(r.Bytes(), s.Bytes()...)
 
 	for _, in := range tx.Inputs {
-		if prevTxs[hex.EncodeToString(in.ID)].ID == nil {
-			log.Panic("ERROR : Previous transaction is not correct")
+		in.Signature = signature
+	}
+}
+
+// GetAmountOf Address
+func GetAmountOf(address string) int {
+	pubKeyHash := utils.Base58Decode([]byte(address))
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+
+	amount := 0
+
+	UTXOs := GetUTXOOf(address)
+
+	for _, utx := range UTXOs.Outputs {
+		if utx.IsLockedWithKey(pubKeyHash) {
+			amount += utx.Value
 		}
 	}
-	txCopy := tx.TrimmedCopy()
-
-	for inID, in := range txCopy.Inputs {
-		prevTx := prevTxs[hex.EncodeToString(in.ID)]
-		txCopy.Inputs[inID].Signature = nil
-		txCopy.Inputs[inID].PubKey = prevTx.Outputs[in.Out].PubKeyHash
-		txCopy.ID = txCopy.Hash()
-		txCopy.Inputs[inID].PubKey = nil
-
-		r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
-		utils.HandleErr(err)
-		signature := append(r.Bytes(), s.Bytes()...)
-
-		tx.Inputs[inID].Signature = signature
-	}
+	return amount
 }

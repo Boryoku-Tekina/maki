@@ -15,10 +15,14 @@ import (
 
 // TxInput : represent the input in transaction
 type TxInput struct {
-	ID        []byte
 	Out       int
 	Signature []byte
 	PubKey    []byte
+}
+
+// TxInputs is an array of TxInput
+type TxInputs struct {
+	Inputs []TxInput
 }
 
 // UsesKey :
@@ -55,7 +59,8 @@ func (out *TxOutput) Lock(address []byte) {
 	out.PubKeyHash = PubKeyHash
 }
 
-// IsLockedWithKey function
+// IsLockedWithKey return true if the Hash of the public key in
+// the output Tx is equal to the given pubKeyHash
 func (out *TxOutput) IsLockedWithKey(PubKeyHash []byte) bool {
 	return bytes.Compare(out.PubKeyHash, PubKeyHash) == 0
 }

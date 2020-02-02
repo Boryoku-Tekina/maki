@@ -3,7 +3,6 @@ package chain
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -38,8 +37,7 @@ func AddBlock(transactions []*Transaction) {
 func PrintChain() {
 	// iterating through all block
 	// beginning from the last
-	var lh []byte
-	GetLastBlockHash(&lh)
+	lh := GetLastBlockHash()
 	actualBlock := GetBlockByHash(lh)
 	for {
 		// if we are on the genesis block
@@ -56,8 +54,7 @@ func PrintChain() {
 // if all block is connected
 func ValidChain() bool {
 	// var actualBlock Block
-	var lh []byte
-	GetLastBlockHash(&lh)
+	lh := GetLastBlockHash()
 	actualBlock := GetBlockByHash(lh)
 
 	for {
@@ -89,20 +86,19 @@ func DBExists() bool {
 
 // SignTransaction function to sign a tx
 func SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
-	prevTxs := make(map[string]Transaction)
+	// prevTxs := make(map[string]Transaction)
 
-	for _, in := range tx.Inputs {
-		prevTX, err := FindTransaction(in.ID)
-		utils.HandleErr(err)
-		prevTxs[hex.EncodeToString(prevTX.ID)] = prevTX
-	}
-	tx.Sign(privKey, prevTxs)
+	// for _, in := range tx.Inputs {
+	// 	prevTX, err := FindTransaction(in.ID)
+	// 	utils.HandleErr(err)
+	// 	prevTxs[hex.EncodeToString(prevTX.ID)] = prevTX
+	// }
+	tx.Sign(privKey)
 }
 
 // FindTransaction : find transaction by given id
 func FindTransaction(ID []byte) (Transaction, error) {
-	var lh []byte
-	GetLastBlockHash(&lh)
+	lh := GetLastBlockHash()
 	actualBlock := GetBlockByHash(lh)
 
 	for {
@@ -130,81 +126,82 @@ func NewTransaction(from, to string, amount int) *Transaction {
 	wallets, err := wallet.CreateWallets()
 	utils.HandleErr(err)
 	w := wallets.GetWallets(from)
-	pubKeyHash := wallet.PublicKeyHash(w.PublicKey)
+	// pubKeyHash := wallet.PublicKeyHash(w.PublicKey)
 
-	acc, validOutputs := FindSpendableOutputs(pubKeyHash, amount)
-
-	if acc < amount {
-		log.Panic("Error: not enough funds")
+	fromBalance := GetAmountOf(from)
+	fmt.Printf("amount of %s : %d\n", from, fromBalance)
+	if fromBalance < amount {
+		log.Panic("[ERROR] : Not enough coins")
 	}
 
-	for txid, outs := range validOutputs {
-		txID, err := hex.DecodeString(txid)
-		utils.HandleErr(err)
+	UTXO := GetUTXOOf(from)
 
-		for _, out := range outs {
-			input := TxInput{txID, out, nil, w.PublicKey}
-			inputs = append(inputs, input)
-		}
+	fmt.Println("[UTXO] : UTXOS")
+	fmt.Println(UTXO)
+
+	for _, outs := range UTXO.Outputs {
+		input := TxInput{outs.Value, nil, w.PublicKey}
+		inputs = append(inputs, input)
 	}
 
 	outputs = append(outputs, *NewTxOutput(amount, to))
-
-	if acc > amount {
-		// changes
-		outputs = append(outputs, *NewTxOutput(acc-amount, from))
-	}
+	// CHANGES
+	fmt.Println("[INFO] : CHANGES : ", fromBalance-amount)
+	outputs = append(outputs, *NewTxOutput(fromBalance-amount, from))
 
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
 	SignTransaction(&tx, w.PrivateKey)
+
+	fmt.Println("[INFO] TX INFORMATION")
+	fmt.Println(tx.String())
 
 	return &tx
 
 }
 
 // FindUTXO find unspent transaction outputs
-func FindUTXO() map[string]TxOutputs {
-	UTXO := make(map[string]TxOutputs)
-	spentTXOs := make(map[string][]int)
+// func FindUTXO() map[string]TxOutputs {
+// 	UTXO := make(map[string]TxOutputs)
+// 	spentTXOs := make(map[string][]int)
 
-	var lh []byte
-	GetLastBlockHash(&lh)
-	block := GetBlockByHash(lh)
+// 	var lh []byte
+// 	GetLastBlockHash(&lh)
+// 	block := GetBlockByHash(lh)
 
-	for {
-		// break if we are on the genesis block
-		if bytes.Equal(block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-			break
-		}
+// 	for {
+// 		// break if we are on the genesis block
+// 		if bytes.Equal(block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+// 			break
+// 		}
 
-		for _, tx := range block.Transactions {
-			txID := hex.EncodeToString(tx.ID)
+// 		for _, tx := range block.Transactions {
+// 			txID := hex.EncodeToString(tx.ID)
 
-		Outputs:
-			for outIdx, out := range tx.Outputs {
-				if spentTXOs[txID] != nil {
-					for _, spentOut := range spentTXOs[txID] {
-						if spentOut == outIdx {
-							continue Outputs
-						}
-					}
-				}
-				// take the outputs
-				// and put it in the UTXO[] map
-				outs := UTXO[txID]
-				outs.Outputs = append(outs.Outputs, out)
-				UTXO[txID] = outs
-			}
-			if tx.IsCoinBase() == false {
-				for _, in := range tx.Inputs {
-					inTxID := hex.EncodeToString(in.ID)
-					spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
-				}
-			}
-		}
-		block = GetBlockByHash(block.PrevHash)
+// 		Outputs:
+// 			for outIdx, out := range tx.Outputs {
+// 				if spentTXOs[txID] != nil {
+// 					for _, spentOut := range spentTXOs[txID] {
+// 						if spentOut == outIdx {
+// 							continue Outputs
+// 						}
+// 					}
+// 				}
+// 				// take the outputs
+// 				// and put it in the UTXO[] map
+// 				outs := UTXO[txID]
+// 				outs.Outputs = append(outs.Outputs, out)
+// 				UTXO[txID] = outs
+// 			}
+// 			if tx.IsCoinBase() == false {
+// 				for _, in := range tx.Inputs {
+// 					inTxID := hex.EncodeToString(in.ID)
+// 					spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
+// 				}
+// 			}
+// 		}
+// 		block = GetBlockByHash(block.PrevHash)
 
-	}
-	return UTXO
-}
+// 	}
+// 	return UTXO
+// }
