@@ -33,6 +33,14 @@ func (in *TxInput) UsesKey(PubKeyHash []byte) bool {
 	return bytes.Compare(lockingHash, PubKeyHash) == 0
 }
 
+// GetPubKeyHash return the hash of the public key
+func GetPubKeyHash(address string) []byte {
+	PubKeyHash := utils.Base58Decode([]byte(address))
+	PubKeyHash = PubKeyHash[1 : len(PubKeyHash)-4]
+
+	return PubKeyHash
+}
+
 /*//////////////////////////////////////////////////////////
 //─────────────────*TxOutput Section*─────────────────────//
 //////////////////////////////////////////////////////////*/

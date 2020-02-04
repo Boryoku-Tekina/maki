@@ -60,10 +60,22 @@ func Send(from, to string, amount int) {
 	if from == to {
 		log.Panic("DONT SEND COIN TO YOURSELF")
 	}
-	fmt.Println("SENDING ", amount, "FROM ", from, "TO ", to, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 	Tx := chain.NewTransaction(from, to, amount)
 	var txs []*chain.Transaction
 	txs = append(txs, Tx)
 	chain.AddBlock(txs)
 	fmt.Printf("[INFO]: Sending %d coins from %s to %s DONE!\n", amount, from, to)
+}
+
+// MemPoolTest Function to test mem Pool
+func MemPoolTest() {
+	chain.InitChain()
+	Donate("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", 150)
+	Donate("1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 1)
+	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 50)
+	chain.MinePendingTx()
+	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 100)
+	fmt.Println("last valid tx added to mempool")
+	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 100)
+	fmt.Println("we must hit an exception")
 }

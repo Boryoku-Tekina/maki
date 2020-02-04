@@ -156,80 +156,16 @@ func NewTransaction(from, to string, amount int) *Transaction {
 	tx.ID = tx.Hash()
 	SignTransaction(&tx, w.PrivateKey)
 
-	fmt.Println("[INFO] TX INFORMATION")
-	fmt.Println(tx.String())
-	FPubKeyHash := utils.Base58Decode([]byte(from))
-	FPubKeyHash = FPubKeyHash[1 : len(FPubKeyHash)-4]
-
-	TPubKeyHash := utils.Base58Decode([]byte(to))
-	TPubKeyHash = TPubKeyHash[1 : len(TPubKeyHash)-4]
-
-	fmt.Println("FROM PUBKEY HASH = ", FPubKeyHash)
-	fmt.Println("TO PUBKEYHASH : ", TPubKeyHash)
-
-	fmt.Println("[INFO] INPUTS...")
-	for i, in := range inputs {
-		fmt.Println("INPUTS NUMERO ", i)
-		fmt.Println("pubkey : ", in.PubKey)
-		fmt.Println("out : ", in.Out)
-		fmt.Println("sig : ", in.Signature)
-	}
-
-	fmt.Println("[INFO] OUTPUTS...")
-	for i, out := range outputs {
-		fmt.Println("OUTPUT NUMERO : ", i)
-		fmt.Println("pubkeyHash", out.PubKeyHash)
-		fmt.Println("Value : ", out.Value)
-	}
-
-	// log.Panic("look at tx")
-
 	return &tx
 
 }
 
-// FindUTXO find unspent transaction outputs
-// func FindUTXO() map[string]TxOutputs {
-// 	UTXO := make(map[string]TxOutputs)
-// 	spentTXOs := make(map[string][]int)
-
-// 	var lh []byte
-// 	GetLastBlockHash(&lh)
-// 	block := GetBlockByHash(lh)
-
-// 	for {
-// 		// break if we are on the genesis block
-// 		if bytes.Equal(block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
-// 			break
-// 		}
-
-// 		for _, tx := range block.Transactions {
-// 			txID := hex.EncodeToString(tx.ID)
-
-// 		Outputs:
-// 			for outIdx, out := range tx.Outputs {
-// 				if spentTXOs[txID] != nil {
-// 					for _, spentOut := range spentTXOs[txID] {
-// 						if spentOut == outIdx {
-// 							continue Outputs
-// 						}
-// 					}
-// 				}
-// 				// take the outputs
-// 				// and put it in the UTXO[] map
-// 				outs := UTXO[txID]
-// 				outs.Outputs = append(outs.Outputs, out)
-// 				UTXO[txID] = outs
-// 			}
-// 			if tx.IsCoinBase() == false {
-// 				for _, in := range tx.Inputs {
-// 					inTxID := hex.EncodeToString(in.ID)
-// 					spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
-// 				}
-// 			}
-// 		}
-// 		block = GetBlockByHash(block.PrevHash)
-
-// 	}
-// 	return UTXO
-// }
+// Send : send amount of coin from an address to other
+func Send(from, to string, amount int) {
+	if from == to {
+		log.Panic("DONT SEND COIN TO YOURSELF")
+	}
+	Tx := NewTransaction(from, to, amount)
+	Tx.AddToPool()
+	fmt.Printf("[INFO] : Transaction added to mem pool")
+}

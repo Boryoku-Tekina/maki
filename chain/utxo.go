@@ -15,6 +15,11 @@ var (
 // GetUTXOOf function
 // return all UTXO for the address
 func GetUTXOOf(address string) TxOutputs {
+
+	if IsInPool(address) {
+		return UTXOInPoolOf(address)
+	}
+
 	UTXOs := TxOutputs{}
 	UTXOs.Outputs = nil
 
