@@ -36,8 +36,9 @@ Parcour:
 		if actualBlock.Transactions == nil {
 			fmt.Println("there is no tx in this block")
 		}
-
-		for _, actualTx := range actualBlock.Transactions {
+		// verifying Transactions in the block from the end to the start
+		for i := len(actualBlock.Transactions) - 1; i >= 0; i-- {
+			actualTx := actualBlock.Transactions[i]
 			if actualTx.IsCoinBase() {
 				for _, out := range actualTx.Outputs {
 					if out.IsLockedWithKey(PubKeyHash) {

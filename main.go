@@ -15,6 +15,11 @@ import (
 )
 
 func main() {
+	table := []int{1, 2, 3, 4, 5, 6, 7}
+	for i := len(table) - 1; i >= 0; i-- {
+		fmt.Println(table[i])
+	}
+	log.Panic("PANIC GENERAL")
 	chain.InitChain()
 	tests.Donate("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", 100)
 	tests.Donate("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", 50)
