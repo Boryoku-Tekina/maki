@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/boryoku-tekina/makiko/utils"
 
@@ -56,7 +57,11 @@ func Donate(address string, amount int) {
 
 // Send : send amount of coin from an address to other
 func Send(from, to string, amount int) {
-	Tx := chain.NewTransaction(from, to, 70)
+	if from == to {
+		log.Panic("DONT SEND COIN TO YOURSELF")
+	}
+	fmt.Println("SENDING ", amount, "FROM ", from, "TO ", to, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+	Tx := chain.NewTransaction(from, to, amount)
 	var txs []*chain.Transaction
 	txs = append(txs, Tx)
 	chain.AddBlock(txs)

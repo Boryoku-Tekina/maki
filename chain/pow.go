@@ -20,7 +20,7 @@ import (
 // THe first few bytes of the hash must contain 0
 
 // Difficulty of consensus
-var difficulty = 2
+var difficulty = 1
 
 // ProofOfWork struct
 type ProofOfWork struct {

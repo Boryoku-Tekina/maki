@@ -47,28 +47,26 @@ Parcour:
 					}
 				}
 			} else {
+				inOutput := false
+				isChange := false
+				var copy []TxOutput
 				for _, out := range actualTx.Outputs {
 					if out.IsLockedWithKey(PubKeyHash) {
-						isChange := false
-						// for _, in := range actualTx.Inputs {
-						// 	if bytes.Equal(in.PubKey, w.PublicKey) {
-						// 		isChange = true
-						// 	}
-						// }
-						// if the last outputs is locked with key pubkeyhash
-						// it is a change
-						if actualTx.Outputs[(len(actualTx.Outputs) - 1)].IsLockedWithKey(PubKeyHash) {
-							isChange = true
-						}
-						if isChange == true {
-							fmt.Println("get a CHANGE for ", address, "stoping...")
+						inOutput = true
+						copy = append(copy, out)
+					}
+				}
+				changeOutput := actualTx.Outputs[len(actualTx.Outputs)-1]
+
+				isChange = changeOutput.IsLockedWithKey(PubKeyHash)
+
+				if inOutput == true {
+					if isChange == true {
+						UTXOs.Outputs = append(UTXOs.Outputs, changeOutput)
+						break Parcour
+					} else {
+						for _, out := range copy {
 							UTXOs.Outputs = append(UTXOs.Outputs, out)
-							fmt.Println("actual UTXOs.OUtputs : ", UTXOs.Outputs)
-							break Parcour
-						} else {
-							fmt.Println("get a TRANSACTION for ", address, "appending and continue...")
-							UTXOs.Outputs = append(UTXOs.Outputs, out)
-							fmt.Println("actual UTXOs.OUtputs : ", UTXOs.Outputs)
 						}
 					}
 				}

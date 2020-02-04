@@ -146,8 +146,11 @@ func NewTransaction(from, to string, amount int) *Transaction {
 
 	outputs = append(outputs, *NewTxOutput(amount, to))
 	// CHANGES
-	fmt.Println("[INFO] : CHANGES : ", fromBalance-amount)
-	outputs = append(outputs, *NewTxOutput(fromBalance-amount, from))
+	fmt.Printf("[INFO] : FROM BALANCE : %d\n", fromBalance)
+	fmt.Printf("[INFO] : AMOUNT TO SEND : %d\n", amount)
+	change := fromBalance - amount
+	fmt.Printf("[INFO] : CHANGES : %d\n", change)
+	outputs = append(outputs, *NewTxOutput(change, from))
 
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
@@ -155,6 +158,31 @@ func NewTransaction(from, to string, amount int) *Transaction {
 
 	fmt.Println("[INFO] TX INFORMATION")
 	fmt.Println(tx.String())
+	FPubKeyHash := utils.Base58Decode([]byte(from))
+	FPubKeyHash = FPubKeyHash[1 : len(FPubKeyHash)-4]
+
+	TPubKeyHash := utils.Base58Decode([]byte(to))
+	TPubKeyHash = TPubKeyHash[1 : len(TPubKeyHash)-4]
+
+	fmt.Println("FROM PUBKEY HASH = ", FPubKeyHash)
+	fmt.Println("TO PUBKEYHASH : ", TPubKeyHash)
+
+	fmt.Println("[INFO] INPUTS...")
+	for i, in := range inputs {
+		fmt.Println("INPUTS NUMERO ", i)
+		fmt.Println("pubkey : ", in.PubKey)
+		fmt.Println("out : ", in.Out)
+		fmt.Println("sig : ", in.Signature)
+	}
+
+	fmt.Println("[INFO] OUTPUTS...")
+	for i, out := range outputs {
+		fmt.Println("OUTPUT NUMERO : ", i)
+		fmt.Println("pubkeyHash", out.PubKeyHash)
+		fmt.Println("Value : ", out.Value)
+	}
+
+	// log.Panic("look at tx")
 
 	return &tx
 

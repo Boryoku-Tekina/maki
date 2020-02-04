@@ -7,6 +7,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/boryoku-tekina/makiko/chain"
@@ -39,6 +40,7 @@ func main() {
 	// log.Panic("look at 2nd test : 80, 160")
 
 	// PASSED 80, 160
+	fmt.Println("STEP2 PASSEDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 
 	// THIRD TEST
 	// must be 90, 150
@@ -48,19 +50,19 @@ func main() {
 	tests.GetBalanceOf("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7")
 	tests.GetBalanceOf("1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6")
 
-	log.Panic("look at 3rd  : 239, 1")
+	// log.Panic("look at 3rd  : 239, 1")
 
 	// PASSED
 
 	// 4th TEST
 	// must be 100, 140
 
-	tests.Send("1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", "1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", 10)
+	tests.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 9)
 
 	tests.GetBalanceOf("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7")
 	tests.GetBalanceOf("1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6")
 
-	log.Panic("look at 4th test")
+	// log.Panic("look at 4th test : 230, 10")
 
 	// PASSED
 
@@ -73,5 +75,5 @@ func main() {
 	tests.GetBalanceOf("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7")
 	tests.GetBalanceOf("1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6")
 
-	log.Panic("look at 5th test")
+	log.Panic("look at 5th test : 330, 70")
 }
