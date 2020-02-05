@@ -1,0 +1,2 @@
+# maki
+Malagasy cryptocurrency
