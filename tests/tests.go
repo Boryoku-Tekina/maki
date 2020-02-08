@@ -79,3 +79,20 @@ func MemPoolTest() {
 	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 100)
 	fmt.Println("we must hit an exception")
 }
+
+// MerkleTreeTest Function to test merkleTree function
+func MerkleTreeTest() {
+	chain.InitChain()
+	Donate("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", 150)
+	Donate("1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 1)
+	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 50)
+	chain.MinePendingTx()
+	b1 := chain.GetBlockByHash(chain.GetLastBlockHash())
+	fmt.Printf("HMR : %x\n", b1.HMerkleRoot)
+	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 100)
+	chain.MinePendingTx()
+	b := chain.GetBlockByHash(chain.GetLastBlockHash())
+	fmt.Printf("HMR : %x\n", b.HMerkleRoot)
+	fmt.Println("voila")
+
+}

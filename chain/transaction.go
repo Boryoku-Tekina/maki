@@ -143,3 +143,8 @@ func GetAmountOf(address string) int {
 	}
 	return amount
 }
+
+// CountTransaction return number of transaction in a block
+func (b *Block) CountTransaction() int {
+	return len(b.Transactions)
+}

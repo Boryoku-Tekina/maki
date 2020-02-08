@@ -2,7 +2,6 @@ package chain
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
 	"log"
@@ -19,6 +18,7 @@ const (
 // Block represent one block structure
 type Block struct {
 	Hash         []byte
+	HMerkleRoot  []byte
 	Transactions []*Transaction
 	PrevHash     []byte
 	Timestamp    []byte
@@ -64,6 +64,7 @@ func (b *Block) Mine() {
 	// block := &Block{[]byte{}, txs, prevHash, 0}
 
 	b.Timestamp = []byte(time.Now().String())
+	b.SetHMerkleRoot()
 	b.PrevHash = GetLastBlockHash()
 	// GetLastBlockHash()
 
@@ -228,17 +229,4 @@ func Deserialize(data []byte) *Block {
 	utils.HandleErr(err)
 
 	return &block
-}
-
-// HashTransactions function
-func (b *Block) HashTransactions() []byte {
-	var txHashes [][]byte
-	var txHash [32]byte
-
-	for _, tx := range b.Transactions {
-		txHashes = append(txHashes, tx.ID)
-	}
-	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
-
-	return txHash[:]
 }
