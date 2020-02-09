@@ -11,27 +11,27 @@ func (b *Block) SetHMerkleRoot() {
 	switch NTransaction {
 	case 0:
 		HMerkleRoot := sha256.Sum256([]byte{0})
-		b.HMerkleRoot = HMerkleRoot[:]
+		b.Header.HMerkleRoot = HMerkleRoot[:]
 	case 1:
 		final := hConcat(b.Transactions[0].Serialize(), b.Transactions[0].Serialize())
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 	case 2:
 		final := hConcat(b.Transactions[0].Serialize(), b.Transactions[1].Serialize())
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 	case 3:
 		S1 := hConcat(b.Transactions[0].Serialize(), b.Transactions[1].Serialize())
 		S2 := hConcat(b.Transactions[2].Serialize(), b.Transactions[2].Serialize())
 		final := hConcat(S1, S2)
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 	case 4:
 		S1 := hConcat(b.Transactions[0].Serialize(), b.Transactions[1].Serialize())
 		S2 := hConcat(b.Transactions[2].Serialize(), b.Transactions[3].Serialize())
 		final := hConcat(S1, S2)
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 	case 5:
 		S1 := hConcat(b.Transactions[0].Serialize(), b.Transactions[1].Serialize())
 		S2 := hConcat(b.Transactions[2].Serialize(), b.Transactions[3].Serialize())
@@ -40,7 +40,7 @@ func (b *Block) SetHMerkleRoot() {
 		C2 := hConcat(S3, S3)
 		final := hConcat(C1, C2)
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 	case 6:
 		S1 := hConcat(b.Transactions[0].Serialize(), b.Transactions[1].Serialize())
 		S2 := hConcat(b.Transactions[2].Serialize(), b.Transactions[3].ID)
@@ -49,7 +49,7 @@ func (b *Block) SetHMerkleRoot() {
 		C2 := hConcat(S3, S3)
 		final := hConcat(C1, C2)
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 	case 7:
 		S1 := hConcat(b.Transactions[0].Serialize(), b.Transactions[1].Serialize())
 		S2 := hConcat(b.Transactions[2].Serialize(), b.Transactions[3].Serialize())
@@ -59,7 +59,7 @@ func (b *Block) SetHMerkleRoot() {
 		C2 := hConcat(S3, S4)
 		final := hConcat(C1, C2)
 		MerkleRoot := sha256.Sum256(final)
-		b.HMerkleRoot = MerkleRoot[:]
+		b.Header.HMerkleRoot = MerkleRoot[:]
 
 	}
 }

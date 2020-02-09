@@ -15,14 +15,19 @@ const (
 	dBPath = "DB/"
 )
 
+// BHeader represent block Header
+type BHeader struct {
+	Hash        []byte
+	HMerkleRoot []byte
+	PrevHash    []byte
+	Timestamp   []byte
+	Nonce       int
+}
+
 // Block represent one block structure
 type Block struct {
-	Hash         []byte
-	HMerkleRoot  []byte
+	Header       BHeader
 	Transactions []*Transaction
-	PrevHash     []byte
-	Timestamp    []byte
-	Nonce        int
 }
 
 // OpenDatabase : opening a database
@@ -41,14 +46,14 @@ func CreateGenesisBlock() {
 	fmt.Println("[INFO] : Creating Genesis block")
 	var b Block
 	b.Transactions = nil
-	b.Timestamp = []byte(time.Now().String())
-	b.PrevHash = bytes.Repeat([]byte{0}, 32)
+	b.Header.Timestamp = []byte(time.Now().String())
+	b.Header.PrevHash = bytes.Repeat([]byte{0}, 32)
 
 	pow := NewWork(&b)
 	nonce, hash := pow.Work()
 
-	b.Hash = hash[:]
-	b.Nonce = nonce
+	b.Header.Hash = hash[:]
+	b.Header.Nonce = nonce
 
 	if !b.ValidateBlock() {
 		log.Panic("this block is not valid")
@@ -63,16 +68,16 @@ func CreateGenesisBlock() {
 func (b *Block) Mine() {
 	// block := &Block{[]byte{}, txs, prevHash, 0}
 
-	b.Timestamp = []byte(time.Now().String())
+	b.Header.Timestamp = []byte(time.Now().String())
 	b.SetHMerkleRoot()
-	b.PrevHash = GetLastBlockHash()
+	b.Header.PrevHash = GetLastBlockHash()
 	// GetLastBlockHash()
 
 	pow := NewWork(b)
 	nonce, hash := pow.Work()
 
-	b.Hash = hash[:]
-	b.Nonce = nonce
+	b.Header.Hash = hash[:]
+	b.Header.Nonce = nonce
 
 	if !b.ValidateBlock() {
 		log.Panic("[ERROR] : this block is not valid")
@@ -91,11 +96,11 @@ func (b *Block) ValidateBlock() bool {
 // RegisterToDB open new boltDB database and create the block value one key in it
 func (b *Block) RegisterToDB() {
 
-	db := OpenDatabase(fmt.Sprintf("%x", b.Hash))
+	db := OpenDatabase(fmt.Sprintf("%x", b.Header.Hash))
 	defer db.Close()
 
 	err := db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(b.Hash)
+		bucket, err := tx.CreateBucketIfNotExists(b.Header.Hash)
 		utils.HandleErr(err)
 		bucket.Put([]byte("block"), b.Serialize())
 		return err
@@ -113,7 +118,7 @@ func (b *Block) SetAsLastBlock() {
 	err := db.Update(func(tx *bolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte("LastBlockHash"))
 		utils.HandleErr(err)
-		bucket.Put([]byte("LastBlockHash"), b.Hash)
+		bucket.Put([]byte("LastBlockHash"), b.Header.Hash)
 		return err
 	})
 	utils.HandleErr(err)
@@ -141,7 +146,7 @@ func getLastBlockHash(d *[]byte) {
 	err := db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("LastBlockHash"))
 		resultat := bucket.Get([]byte("LastBlockHash"))
-		b.Hash = resultat
+		b.Header.Hash = resultat
 
 		var buffer bytes.Buffer
 		encoder := gob.NewEncoder(&buffer)
@@ -185,7 +190,7 @@ func GetBlockByHash(bhash []byte) *Block {
 // PrintBlockInfo : print all information in the block
 func (b *Block) PrintBlockInfo() {
 	fmt.Println("────────────────────────────────────────")
-	fmt.Printf("Block  %x information : \n", b.Hash)
+	fmt.Printf("Block  %x information : \n", b.Header.Hash)
 
 	fmt.Printf("────Transactions :\n\t")
 	for _, tx := range b.Transactions {
@@ -194,10 +199,10 @@ func (b *Block) PrintBlockInfo() {
 		fmt.Printf("\n----------------------------------------------------------")
 	}
 	fmt.Println()
-	fmt.Printf("────Hash : \t %x \n", b.Hash)
-	fmt.Printf("────Previous Hash : \t %x \n", b.PrevHash)
-	fmt.Printf("────Timestamp : \t %s \n", string(b.Timestamp))
-	fmt.Printf("────Nonce : \t %d \n", b.Nonce)
+	fmt.Printf("────Hash : \t %x \n", b.Header.Hash)
+	fmt.Printf("────Previous Hash : \t %x \n", b.Header.PrevHash)
+	fmt.Printf("────Timestamp : \t %s \n", string(b.Header.Timestamp))
+	fmt.Printf("────Nonce : \t %d \n", b.Header.Nonce)
 	fmt.Println("────────────────────────────────────────")
 
 }

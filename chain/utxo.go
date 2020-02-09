@@ -35,7 +35,7 @@ func GetUTXOOf(address string) TxOutputs {
 Parcour:
 	for {
 		// if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+		if bytes.Equal(actualBlock.Header.PrevHash, bytes.Repeat([]byte{0}, 32)) {
 			break
 		}
 		if actualBlock.Transactions == nil {
@@ -80,7 +80,7 @@ Parcour:
 
 		}
 
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
+		actualBlock = GetBlockByHash(actualBlock.Header.PrevHash)
 	}
 	return UTXOs
 }
