@@ -88,11 +88,11 @@ func MerkleTreeTest() {
 	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 50)
 	chain.MinePendingTx()
 	b1 := chain.GetBlockByHash(chain.GetLastBlockHash())
-	fmt.Printf("HMR : %x\n", b1.HMerkleRoot)
+	fmt.Printf("HMR : %x\n", b1.Header.HMerkleRoot)
 	chain.Send("1KHaWQQ3GHmWN2d417YbtA3L6v65b11Ya7", "1PrZapno38xz6g7ZHzwtxb3SM3uKUw8EE6", 100)
 	chain.MinePendingTx()
 	b := chain.GetBlockByHash(chain.GetLastBlockHash())
-	fmt.Printf("HMR : %x\n", b.HMerkleRoot)
+	fmt.Printf("HMR : %x\n", b.Header.HMerkleRoot)
 	fmt.Println("voila")
 
 }

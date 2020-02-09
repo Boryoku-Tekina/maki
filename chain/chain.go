@@ -41,12 +41,12 @@ func PrintChain() {
 	actualBlock := GetBlockByHash(lh)
 	for {
 		// if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+		if bytes.Equal(actualBlock.Header.PrevHash, bytes.Repeat([]byte{0}, 32)) {
 			actualBlock.PrintBlockInfo()
 			break
 		}
 		actualBlock.PrintBlockInfo()
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
+		actualBlock = GetBlockByHash(actualBlock.Header.PrevHash)
 	}
 }
 
@@ -59,7 +59,7 @@ func ValidChain() bool {
 
 	for {
 		// if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+		if bytes.Equal(actualBlock.Header.PrevHash, bytes.Repeat([]byte{0}, 32)) {
 			validation := actualBlock.ValidateBlock()
 			if validation == false {
 				return false
@@ -70,7 +70,7 @@ func ValidChain() bool {
 		if validation == false {
 			return false
 		}
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
+		actualBlock = GetBlockByHash(actualBlock.Header.PrevHash)
 	}
 	return true
 }
@@ -103,7 +103,7 @@ func FindTransaction(ID []byte) (Transaction, error) {
 
 	for {
 		// break if we are on the genesis block
-		if bytes.Equal(actualBlock.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+		if bytes.Equal(actualBlock.Header.PrevHash, bytes.Repeat([]byte{0}, 32)) {
 			break
 		}
 
@@ -112,7 +112,7 @@ func FindTransaction(ID []byte) (Transaction, error) {
 				return *tx, nil
 			}
 		}
-		actualBlock = GetBlockByHash(actualBlock.PrevHash)
+		actualBlock = GetBlockByHash(actualBlock.Header.PrevHash)
 	}
 
 	return Transaction{}, errors.New("Transaction does not exist")

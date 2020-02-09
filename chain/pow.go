@@ -38,9 +38,9 @@ func (pow *ProofOfWork) initData(nonce int) []byte {
 
 	data := bytes.Join(
 		[][]byte{
-			pow.Block.PrevHash,
-			pow.Block.HMerkleRoot,
-			[]byte(pow.Block.Timestamp),
+			pow.Block.Header.PrevHash,
+			pow.Block.Header.HMerkleRoot,
+			[]byte(pow.Block.Header.Timestamp),
 			utils.ToHex(int64(nonce)),
 			utils.ToHex(int64(difficulty)),
 		},
@@ -71,7 +71,7 @@ func (pow *ProofOfWork) Work() (int, []byte) {
 
 // Validate the work
 func (pow *ProofOfWork) Validate() bool {
-	data := pow.initData(pow.Block.Nonce)
+	data := pow.initData(pow.Block.Header.Nonce)
 
 	hash := sha256.Sum256(data)
 
@@ -79,18 +79,18 @@ func (pow *ProofOfWork) Validate() bool {
 		fmt.Println("hash does not satisfy difficulty requirements")
 		return false
 	}
-	if !bytes.Equal(hash[:], pow.Block.Hash) {
+	if !bytes.Equal(hash[:], pow.Block.Header.Hash) {
 		fmt.Println("hash is not correct : maybe this nonce does not provide a valid hash")
 		return false
 	}
 	// verifying the genesis block
-	if bytes.Equal(pow.Block.PrevHash, bytes.Repeat([]byte{0}, 32)) {
+	if bytes.Equal(pow.Block.Header.PrevHash, bytes.Repeat([]byte{0}, 32)) {
 		fmt.Println("GENESIS BLOCK VALID")
 		return true
 	}
-	if !bytes.Equal(pow.Block.PrevHash, GetBlockByHash(pow.Block.PrevHash).Hash) {
+	if !bytes.Equal(pow.Block.Header.PrevHash, GetBlockByHash(pow.Block.Header.PrevHash).Header.Hash) {
 		fmt.Println("previous hash not matching")
 	}
-	fmt.Printf("[INFO] : block %x validated\n", pow.Block.Hash)
+	fmt.Printf("[INFO] : block %x validated\n", pow.Block.Header.Hash)
 	return true
 }
